@@ -165,8 +165,8 @@ The module should generate MCP config (location TBD):
 
 ## Open Questions
 
-1. **MCP config location** - Where does Claude Code expect the config? `~/.config/claude-code/mcp.json`?
-2. **Secret management** - Pass env vars at runtime? sops-nix? agenix?
+1. **MCP config location** - Where does Claude Code expect the config?
+2. **Secret storage** - Where to store generated PAT securely?
 
 ---
 

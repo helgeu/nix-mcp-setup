@@ -13,19 +13,69 @@ This project provides a Nix module to manage and run MCP servers. Instead of ins
 - **Declarative**: Configured via Nix module system
 - **No host installation**: MCP servers are not installed on the host computer
 
-## Planned MCP Servers
+## MCP Servers
 
-- Azure DevOps MCP (`@azure-devops/mcp`)
-- Additional servers TBD
+| Server | Docker Image | Status |
+|--------|--------------|--------|
+| Azure DevOps | `ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops` | Tested |
+| GitHub | `ghcr.io/github/github-mcp-server` | Planned |
+| Context7 | Docker MCP Catalog | Planned |
 
-## Requirements
+## Quick Start
 
-- Nix with flakes enabled
-- Docker
+### Prerequisites
 
-## Status
+- Docker (or Rancher Desktop with Docker CLI)
+- PowerShell (`pwsh`)
+- Azure CLI (`az`)
 
-**Work in Progress** - Initial setup phase.
+### 1. Generate ADO PAT
+
+Login to Azure and generate a scoped PAT:
+
+```bash
+az login
+./scripts/create-ado-pat.ps1
+```
+
+PAT settings:
+- Scopes: `vso.work vso.code vso.build`
+- Expiry: 7 days
+
+### 2. Test MCP Server
+
+```bash
+docker run -i --rm \
+  -e AZURE_DEVOPS_PAT="<your-pat>" \
+  -e AZURE_DEVOPS_ORGANIZATION_URL="https://dev.azure.com/<your-org>" \
+  ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops \
+  mcp-azure-devops
+```
+
+### 3. Configure Claude Code
+
+TBD - Nix module will generate this config.
+
+## Target Environment
+
+**Current:** macOS + Rancher Desktop (Docker CLI)
+
+**Future:** Linux (Docker/Podman), Windows (WSL2)
+
+## Project Structure
+
+```
+nix-mcp-setup/
+├── README.md
+├── scripts/
+│   └── create-ado-pat.ps1    # Generate scoped PAT via az cli
+└── docs/
+    └── ROADMAP.md            # Implementation phases
+```
+
+## Roadmap
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for implementation phases.
 
 ## License
 
