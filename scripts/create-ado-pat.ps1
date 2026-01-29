@@ -4,8 +4,8 @@ $Org = "urholm"
 $PatName = "mcp-server-$(Get-Date -Format 'yyyyMMdd')"
 $ValidTo = (Get-Date).AddDays(7).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 
-# Scopes for MCP server
-$Scopes = "vso.work vso.code vso.build"
+# Scopes for MCP server (write access for work items)
+$Scopes = "vso.work_write vso.code_write vso.build_execute"
 
 $Body = @{
     displayName = $PatName
