@@ -4,6 +4,30 @@ High-level plan for implementing MCP servers as a Nix module with Docker contain
 
 ---
 
+## Target Environment
+
+### Current (Phase 1)
+- **OS:** macOS
+- **Container runtime:** Rancher Desktop (Docker CLI compatible)
+- **Nix:** nix-darwin + Home Manager
+
+### Future Expansion
+| Platform | Container Runtime | Nix Integration |
+|----------|------------------|-----------------|
+| Linux | Docker, Podman | NixOS modules, Home Manager |
+| Windows | WSL2 + Docker/Rancher | Home Manager via WSL |
+
+### Design Decision
+Focus on macOS + Rancher Desktop first. Abstract container runtime behind a configurable option to ease future expansion:
+
+```nix
+services.mcp = {
+  containerCommand = "docker";  # or "podman", "nerdctl", etc.
+};
+```
+
+---
+
 ## MCP Servers to Implement
 
 ### 1. GitHub MCP Server
@@ -143,7 +167,6 @@ The module should generate MCP config (location TBD):
 
 1. **MCP config location** - Where does Claude Code expect the config? `~/.config/claude-code/mcp.json`?
 2. **Secret management** - Pass env vars at runtime? sops-nix? agenix?
-3. **Container runtime** - Docker only, or also support Podman?
 
 ---
 
