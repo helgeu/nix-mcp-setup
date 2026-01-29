@@ -5,8 +5,8 @@ Nix flake for Claude Code with MCP servers and plugins.
 ## What This Does
 
 - Installs Claude Code CLI via [claude-code-nix](https://github.com/sadjow/claude-code-nix)
-- Installs dependencies: bun, uv, nodejs
-- Configures MCP servers (Azure DevOps)
+- Installs dependencies: bun, uv, nodejs, jq
+- Configures MCP servers (Azure DevOps) - merges into existing `~/.claude.json`
 - Installs plugins (claude-mem)
 
 ## Prerequisites
@@ -17,9 +17,9 @@ Nix flake for Claude Code with MCP servers and plugins.
 
 ## Quick Start
 
-### Option 1: Home Manager Module
+### Option 1: Simple (Recommended)
 
-Add to your `flake.nix`:
+Use the pre-configured module that includes the Claude Code package:
 
 ```nix
 {
@@ -32,6 +32,43 @@ Add to your `flake.nix`:
   outputs = { nixpkgs, home-manager, nix-mcp-setup, ... }: {
     homeConfigurations."youruser" = home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.aarch64-darwin;
+      modules = [
+        # Use system-specific module with package included
+        nix-mcp-setup.homeManagerModulesWithPackage.aarch64-darwin.default
+        {
+          programs.claude-code = {
+            enable = true;
+            mcp.azure-devops = {
+              enable = true;
+              organizationUrl = "https://dev.azure.com/myorg";
+            };
+            plugins.claude-mem.enable = true;
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+### Option 2: With extraSpecialArgs
+
+For more control, pass the flake via `extraSpecialArgs`:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    home-manager.url = "github:nix-community/home-manager";
+    nix-mcp-setup.url = "github:helgeu/nix-mcp-setup";
+  };
+
+  outputs = { nixpkgs, home-manager, nix-mcp-setup, ... }: {
+    homeConfigurations."youruser" = home-manager.lib.homeManagerConfiguration {
+      pkgs = nixpkgs.legacyPackages.aarch64-darwin;
+      extraSpecialArgs = {
+        inherit nix-mcp-setup;
+      };
       modules = [
         nix-mcp-setup.homeManagerModules.default
         {
@@ -56,21 +93,46 @@ Then run:
 home-manager switch
 ```
 
-### Option 2: Standalone Installation
+### Option 3: Standalone Installation
 
-Install Claude Code only:
+Install Claude Code only (no MCP config):
 
 ```bash
 nix profile install github:helgeu/nix-mcp-setup
 ```
 
-Then manually configure MCP servers and plugins.
+## Module Options
+
+### `programs.claude-code`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enable` | bool | `false` | Enable Claude Code |
+| `package` | package | claude-code | Claude Code package |
+| `containerCommand` | string | `"docker"` | Container runtime (`docker`, `podman`, etc.) |
+
+### `programs.claude-code.mcp.azure-devops`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enable` | bool | `false` | Enable ADO MCP server |
+| `organizationUrl` | string | required | ADO organization URL |
+| `image` | string | metorial image | Docker image |
+| `patEnvVar` | string | `"AZURE_DEVOPS_PAT"` | PAT environment variable |
+| `serverName` | string | `"ado-mcp"` | MCP server name in config |
+
+### `programs.claude-code.plugins.claude-mem`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enable` | bool | `false` | Enable claude-mem plugin |
+| `autoInstall` | bool | `true` | Auto-install on activation |
 
 ## Configuration
 
-### Azure DevOps MCP
+### Azure DevOps PAT
 
-The module generates `~/.claude.json` with MCP server config. You need to set the PAT as an environment variable:
+Set the PAT as an environment variable:
 
 ```bash
 export AZURE_DEVOPS_PAT="your-pat-here"
@@ -83,11 +145,13 @@ az login
 ./scripts/create-ado-pat.ps1
 ```
 
-### claude-mem Plugin
+### Existing ~/.claude.json
 
-When `plugins.claude-mem.enable = true`, the plugin is installed automatically on `home-manager switch`.
+The module **merges** MCP servers into your existing `~/.claude.json`. It won't overwrite your other settings.
 
-To install manually:
+### Manual Plugin Install
+
+If `autoInstall = false`, install manually:
 
 ```bash
 ./scripts/setup-claude-plugins.sh claude-mem
@@ -123,6 +187,27 @@ nix-mcp-setup/
     └── PLUGIN-DEPENDENCIES.md
 ```
 
+## Testing
+
+Create a test directory and flake:
+
+```bash
+mkdir /tmp/nix-mcp-test && cd /tmp/nix-mcp-test
+```
+
+Create `flake.nix` (see examples/test-flake.nix), then:
+
+```bash
+# Dry run - see what would be generated
+home-manager build --flake .#test
+
+# Check generated config
+cat result/home-path/etc/profile.d/hm-session-vars.sh
+
+# Actually apply (modifies your home)
+home-manager switch --flake .#test
+```
+
 ## Verification
 
 After setup:
@@ -136,6 +221,9 @@ claude mcp list
 
 # Check plugins
 claude plugin list
+
+# Check config was merged
+cat ~/.claude.json | jq '.mcpServers'
 ```
 
 ## License

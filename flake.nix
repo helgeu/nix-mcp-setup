@@ -21,24 +21,27 @@
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     in
     {
-      # Home Manager module
+      # Home Manager module - import this in your home-manager config
+      # Pass `nix-mcp-setup = inputs.nix-mcp-setup` via extraSpecialArgs
       homeManagerModules = {
         default = self.homeManagerModules.claude-code;
-        claude-code = import ./modules/home-manager.nix {
-          inherit claude-code-nix;
-        };
+        claude-code = ./modules/home-manager.nix;
       };
 
+      # Convenience: pre-configured module that includes claude-code package
+      # Use this if you don't want to set up extraSpecialArgs
+      homeManagerModulesWithPackage = forAllSystems (system: {
+        default = { config, lib, pkgs, ... }: {
+          imports = [ ./modules/home-manager.nix ];
+          programs.claude-code.package = lib.mkDefault claude-code-nix.packages.${system}.default;
+        };
+      });
+
       # Packages (for standalone use: nix profile install)
-      packages = forAllSystems (system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-        in
-        {
-          default = claude-code-nix.packages.${system}.default;
-          claude-code = claude-code-nix.packages.${system}.default;
-        }
-      );
+      packages = forAllSystems (system: {
+        default = claude-code-nix.packages.${system}.default;
+        claude-code = claude-code-nix.packages.${system}.default;
+      });
 
       # Dev shell for working on this repo
       devShells = forAllSystems (system:

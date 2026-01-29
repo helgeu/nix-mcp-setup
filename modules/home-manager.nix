@@ -1,19 +1,31 @@
 # Main Home Manager module for Claude Code
-{ claude-code-nix }:
-
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, nix-mcp-setup ? null, ... }:
 
 with lib;
 
 let
   cfg = config.programs.claude-code;
 
-  # Convert attrset to JSON for ~/.claude.json
-  claudeConfig = {
-    mcpServers = cfg._mcpServers;
-  };
+  # Build the mcpServers JSON fragment
+  mcpServersJson = builtins.toJSON { mcpServers = cfg._mcpServers; };
 
-  claudeConfigJson = pkgs.writeText "claude.json" (builtins.toJSON claudeConfig);
+  # Script to merge MCP servers into existing ~/.claude.json
+  mergeScript = pkgs.writeShellScript "merge-claude-config" ''
+    set -e
+    CLAUDE_JSON="$HOME/.claude.json"
+    MCP_FRAGMENT='${mcpServersJson}'
+
+    if [ -f "$CLAUDE_JSON" ]; then
+      # Merge: existing config + our mcpServers (our mcpServers take precedence)
+      ${pkgs.jq}/bin/jq -s '.[0] * .[1]' "$CLAUDE_JSON" <(echo "$MCP_FRAGMENT") > "$CLAUDE_JSON.tmp"
+      mv "$CLAUDE_JSON.tmp" "$CLAUDE_JSON"
+      echo "Merged MCP servers into $CLAUDE_JSON"
+    else
+      # No existing file, create new one
+      echo "$MCP_FRAGMENT" | ${pkgs.jq}/bin/jq '.' > "$CLAUDE_JSON"
+      echo "Created $CLAUDE_JSON"
+    fi
+  '';
 in
 {
   imports = [
@@ -26,8 +38,19 @@ in
 
     package = mkOption {
       type = types.package;
-      default = claude-code-nix.packages.${pkgs.system}.default;
+      default =
+        if nix-mcp-setup != null
+        then nix-mcp-setup.packages.${pkgs.system}.default
+        else throw "programs.claude-code.package must be set, or pass nix-mcp-setup via extraSpecialArgs";
+      defaultText = literalExpression "nix-mcp-setup.packages.\${pkgs.system}.default";
       description = "The Claude Code package to install";
+    };
+
+    containerCommand = mkOption {
+      type = types.str;
+      default = "docker";
+      example = "podman";
+      description = "Container runtime command for MCP servers";
     };
 
     # Internal option to collect MCP server configs from submodules
@@ -46,11 +69,14 @@ in
       pkgs.bun       # Required for claude-mem plugin
       pkgs.uv        # Required for claude-mem (uvx for Chroma)
       pkgs.nodejs_20 # Required for plugin scripts
+      pkgs.jq        # Required for config merging
     ];
 
-    # Generate ~/.claude.json with MCP servers
-    home.file.".claude.json" = mkIf (cfg._mcpServers != { }) {
-      source = claudeConfigJson;
-    };
+    # Merge MCP servers into ~/.claude.json on activation
+    home.activation.mergeMcpServers = mkIf (cfg._mcpServers != { }) (
+      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        $DRY_RUN_CMD ${mergeScript}
+      ''
+    );
   };
 }

@@ -11,8 +11,8 @@ let
 
     # Check if claude is available
     if ! command -v claude &> /dev/null; then
-      echo "Error: claude command not found"
-      exit 1
+      echo "Warning: claude command not found, skipping plugin install"
+      exit 0
     fi
 
     # Check if plugin is already installed
@@ -35,12 +35,23 @@ in
 {
   options.programs.claude-code.plugins.claude-mem = {
     enable = mkEnableOption "claude-mem plugin for persistent memory";
+
+    autoInstall = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Automatically install the plugin on home-manager activation.
+        Set to false to install manually with: ./scripts/setup-claude-plugins.sh claude-mem
+      '';
+    };
   };
 
   config = mkIf cfg.enable {
-    # Run plugin setup on activation
-    home.activation.setupClaudeMem = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      $DRY_RUN_CMD ${setupScript}
-    '';
+    # Run plugin setup on activation (if autoInstall is enabled)
+    home.activation.setupClaudeMem = mkIf cfg.autoInstall (
+      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        $DRY_RUN_CMD ${setupScript}
+      ''
+    );
   };
 }
