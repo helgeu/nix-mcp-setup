@@ -5,6 +5,7 @@ with lib;
 
 let
   cfg = config.programs.claude-code;
+  hasMcpServers = cfg._mcpServers != { };
 
   # Build the mcpServers JSON fragment
   mcpServersJson = builtins.toJSON { mcpServers = cfg._mcpServers; };
@@ -24,6 +25,24 @@ let
       # No existing file, create new one
       echo "$MCP_FRAGMENT" | ${pkgs.jq}/bin/jq '.' > "$CLAUDE_JSON"
       echo "Created $CLAUDE_JSON"
+    fi
+  '';
+
+  # Script to validate container runtime
+  validateContainerScript = pkgs.writeShellScript "validate-container-runtime" ''
+    if ! command -v ${cfg.containerCommand} &> /dev/null; then
+      echo ""
+      echo "WARNING: Container runtime '${cfg.containerCommand}' not found!"
+      echo "MCP servers require a container runtime to function."
+      echo ""
+      echo "Install one of:"
+      echo "  - Docker Desktop: https://www.docker.com/products/docker-desktop"
+      echo "  - Rancher Desktop: https://rancherdesktop.io"
+      echo "  - Colima: brew install colima && colima start"
+      echo "  - Podman: set containerCommand = \"podman\""
+      echo ""
+    else
+      echo "Container runtime '${cfg.containerCommand}' found: $(command -v ${cfg.containerCommand})"
     fi
   '';
 in
@@ -53,6 +72,12 @@ in
       description = "Container runtime command for MCP servers";
     };
 
+    validateContainerRuntime = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Check if container runtime is available during activation";
+    };
+
     # Internal option to collect MCP server configs from submodules
     _mcpServers = mkOption {
       type = types.attrsOf types.attrs;
@@ -72,9 +97,16 @@ in
       pkgs.jq        # Required for config merging
     ];
 
-    # Merge MCP servers into ~/.claude.json on activation
-    home.activation.mergeMcpServers = mkIf (cfg._mcpServers != { }) (
+    # Validate container runtime during activation
+    home.activation.validateContainerRuntime = mkIf (hasMcpServers && cfg.validateContainerRuntime) (
       lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        $DRY_RUN_CMD ${validateContainerScript}
+      ''
+    );
+
+    # Merge MCP servers into ~/.claude.json on activation
+    home.activation.mergeMcpServers = mkIf hasMcpServers (
+      lib.hm.dag.entryAfter [ "writeBoundary" "validateContainerRuntime" ] ''
         $DRY_RUN_CMD ${mergeScript}
       ''
     );

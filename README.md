@@ -110,6 +110,7 @@ nix profile install github:helgeu/nix-mcp-setup
 | `enable` | bool | `false` | Enable Claude Code |
 | `package` | package | claude-code | Claude Code package |
 | `containerCommand` | string | `"docker"` | Container runtime (`docker`, `podman`, etc.) |
+| `validateContainerRuntime` | bool | `true` | Warn if container runtime not found |
 
 ### `programs.claude-code.mcp.azure-devops`
 
@@ -117,9 +118,10 @@ nix profile install github:helgeu/nix-mcp-setup
 |--------|------|---------|-------------|
 | `enable` | bool | `false` | Enable ADO MCP server |
 | `organizationUrl` | string | required | ADO organization URL |
-| `image` | string | metorial image | Docker image |
+| `image` | string | pinned digest | Docker image (pinned for reproducibility) |
 | `patEnvVar` | string | `"AZURE_DEVOPS_PAT"` | PAT environment variable |
 | `serverName` | string | `"ado-mcp"` | MCP server name in config |
+| `prePull` | bool | `true` | Pre-pull image during activation |
 
 ### `programs.claude-code.plugins.claude-mem`
 
@@ -155,6 +157,20 @@ If `autoInstall = false`, install manually:
 
 ```bash
 ./scripts/setup-claude-plugins.sh claude-mem
+```
+
+### Updating Docker Images
+
+Docker images are pinned by digest for reproducibility. To update to latest:
+
+```bash
+# Pull latest and get new digest
+docker pull ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops:latest
+docker inspect ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops:latest \
+  --format='{{index .RepoDigests 0}}'
+
+# Use the output in your config:
+mcp.azure-devops.image = "ghcr.io/...@sha256:abc123...";
 ```
 
 ## MCP Servers
