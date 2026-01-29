@@ -5,6 +5,7 @@ with lib;
 
 let
   cfg = config.programs.claude-code.mcp.azure-devops;
+  containerCmd = config.programs.claude-code.containerCommand;
 in
 {
   options.programs.claude-code.mcp.azure-devops = {
@@ -27,13 +28,19 @@ in
       default = "AZURE_DEVOPS_PAT";
       description = "Environment variable name containing the PAT";
     };
+
+    serverName = mkOption {
+      type = types.str;
+      default = "ado-mcp";
+      description = "Name for this MCP server in Claude config";
+    };
   };
 
   config = mkIf cfg.enable {
     # MCP server config fragment - consumed by home-manager.nix
-    programs.claude-code._mcpServers.ado-mcp = {
+    programs.claude-code._mcpServers.${cfg.serverName} = {
       type = "stdio";
-      command = "docker";
+      command = containerCmd;
       args = [
         "run"
         "-i"
