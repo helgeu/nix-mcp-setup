@@ -1,111 +1,142 @@
 # nix-mcp-setup
 
-Nix module for running MCP (Model Context Protocol) servers as Docker containers.
+Nix flake for Claude Code with MCP servers and plugins.
 
-## Overview
+## What This Does
 
-This project provides a Nix module to manage and run MCP servers. Instead of installing MCP servers directly on the host machine, each server runs in its own Docker container.
+- Installs Claude Code CLI via [claude-code-nix](https://github.com/sadjow/claude-code-nix)
+- Installs dependencies: bun, uv, nodejs
+- Configures MCP servers (Azure DevOps)
+- Installs plugins (claude-mem)
 
-## Design Principles
+## Prerequisites
 
-- **Docker-based**: All MCP servers run as Docker containers
-- **Isolated**: Each MCP server has its own dedicated Docker image
-- **Declarative**: Configured via Nix module system
-- **No host installation**: MCP servers are not installed on the host computer
-
-## MCP Servers
-
-| Server | Docker Image | Status |
-|--------|--------------|--------|
-| Azure DevOps | `ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops` | Tested |
-| GitHub | `ghcr.io/github/github-mcp-server` | Planned |
-| Context7 | Docker MCP Catalog | Planned |
+- **Nix** with flakes enabled
+- **Docker** CLI available (`docker` command)
+  - Docker Desktop, Rancher Desktop, Colima, or Podman with Docker CLI
 
 ## Quick Start
 
-### Prerequisites
+### Option 1: Home Manager Module
 
-- Docker (or Rancher Desktop with Docker CLI)
-- PowerShell (`pwsh`)
-- Azure CLI (`az`)
+Add to your `flake.nix`:
 
-### 1. Generate ADO PAT
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    home-manager.url = "github:nix-community/home-manager";
+    nix-mcp-setup.url = "github:helgeu/nix-mcp-setup";
+  };
 
-Login to Azure and generate a scoped PAT:
+  outputs = { nixpkgs, home-manager, nix-mcp-setup, ... }: {
+    homeConfigurations."youruser" = home-manager.lib.homeManagerConfiguration {
+      pkgs = nixpkgs.legacyPackages.aarch64-darwin;
+      modules = [
+        nix-mcp-setup.homeManagerModules.default
+        {
+          programs.claude-code = {
+            enable = true;
+            mcp.azure-devops = {
+              enable = true;
+              organizationUrl = "https://dev.azure.com/myorg";
+            };
+            plugins.claude-mem.enable = true;
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+Then run:
+
+```bash
+home-manager switch
+```
+
+### Option 2: Standalone Installation
+
+Install Claude Code only:
+
+```bash
+nix profile install github:helgeu/nix-mcp-setup
+```
+
+Then manually configure MCP servers and plugins.
+
+## Configuration
+
+### Azure DevOps MCP
+
+The module generates `~/.claude.json` with MCP server config. You need to set the PAT as an environment variable:
+
+```bash
+export AZURE_DEVOPS_PAT="your-pat-here"
+```
+
+Generate a PAT with:
 
 ```bash
 az login
 ./scripts/create-ado-pat.ps1
 ```
 
-PAT settings:
-- Scopes: `vso.work vso.code vso.build`
-- Expiry: 7 days
+### claude-mem Plugin
 
-### 2. Test MCP Server
+When `plugins.claude-mem.enable = true`, the plugin is installed automatically on `home-manager switch`.
 
-```bash
-docker run -i --rm \
-  -e AZURE_DEVOPS_PAT="<your-pat>" \
-  -e AZURE_DEVOPS_ORGANIZATION_URL="https://dev.azure.com/<your-org>" \
-  ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops \
-  mcp-azure-devops
-```
-
-### 3. Configure Claude Code
-
-Add to `~/.claude.json` under the `mcpServers` key:
-
-```json
-{
-  "mcpServers": {
-    "ado-mcp": {
-      "type": "stdio",
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "AZURE_DEVOPS_PAT",
-        "-e", "AZURE_DEVOPS_ORGANIZATION_URL",
-        "ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops",
-        "mcp-azure-devops"
-      ],
-      "env": {
-        "AZURE_DEVOPS_PAT": "<your-pat>",
-        "AZURE_DEVOPS_ORGANIZATION_URL": "https://dev.azure.com/<your-org>"
-      }
-    }
-  }
-}
-```
-
-Verify with:
+To install manually:
 
 ```bash
-claude mcp list
+./scripts/setup-claude-plugins.sh claude-mem
 ```
 
-**Note:** Restart Claude Code after config changes.
+## MCP Servers
 
-## Target Environment
-
-**Current:** macOS + Rancher Desktop (Docker CLI)
-
-**Future:** Linux (Docker/Podman), Windows (WSL2)
+| Server | Docker Image | Status |
+|--------|--------------|--------|
+| Azure DevOps | `ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops` | ✅ Implemented |
+| GitHub | `ghcr.io/github/github-mcp-server` | Planned |
+| Context7 | Docker MCP Catalog | Planned |
 
 ## Project Structure
 
 ```
 nix-mcp-setup/
-├── README.md
+├── flake.nix                    # Main entry point
+├── modules/
+│   ├── home-manager.nix         # Home Manager module
+│   ├── mcp-servers/
+│   │   └── azure-devops.nix     # ADO MCP config
+│   └── plugins/
+│       └── claude-mem.nix       # claude-mem plugin
 ├── scripts/
-│   └── create-ado-pat.ps1    # Generate scoped PAT via az cli
+│   ├── create-ado-pat.ps1       # Generate ADO PAT
+│   └── setup-claude-plugins.sh  # Manual plugin install
+├── examples/
+│   └── claude.json              # Example config
 └── docs/
-    └── ROADMAP.md            # Implementation phases
+    ├── ROADMAP.md
+    ├── PLAN-NIX-MODULE.md
+    └── PLUGIN-DEPENDENCIES.md
 ```
 
-## Roadmap
+## Verification
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for implementation phases.
+After setup:
+
+```bash
+# Check Claude Code
+claude --version
+
+# Check MCP servers
+claude mcp list
+
+# Check plugins
+claude plugin list
+```
 
 ## License
 
