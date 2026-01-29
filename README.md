@@ -54,7 +54,37 @@ docker run -i --rm \
 
 ### 3. Configure Claude Code
 
-TBD - Nix module will generate this config.
+Add to `~/.claude.json` under the `mcpServers` key:
+
+```json
+{
+  "mcpServers": {
+    "ado-mcp": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "AZURE_DEVOPS_PAT",
+        "-e", "AZURE_DEVOPS_ORGANIZATION_URL",
+        "ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops",
+        "mcp-azure-devops"
+      ],
+      "env": {
+        "AZURE_DEVOPS_PAT": "<your-pat>",
+        "AZURE_DEVOPS_ORGANIZATION_URL": "https://dev.azure.com/<your-org>"
+      }
+    }
+  }
+}
+```
+
+Verify with:
+
+```bash
+claude mcp list
+```
+
+**Note:** Restart Claude Code after config changes.
 
 ## Target Environment
 
