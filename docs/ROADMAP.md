@@ -29,7 +29,7 @@ High-level plan for implementing MCP servers as a Nix module with Docker contain
 - `AZURE_DEVOPS_PAT` - Personal Access Token
 - `AZURE_DEVOPS_ORGANIZATION_URL` - e.g., `https://dev.azure.com/myorg`
 
-**Note:** The official Microsoft ADO MCP (`@azure-devops/mcp`) has more features but no Docker image. The community containers provide basic functionality.
+**Note:** The official Microsoft ADO MCP (`@azure-devops/mcp`) has more features but no Docker image. Using community containers first - if insufficient, consider wrapping official package later.
 
 ### 4. Docker Hub MCP Server (Optional)
 **Docker:** `mcp/azure` on [Docker MCP Catalog](https://hub.docker.com/mcp/server/dockerhub/overview)
@@ -144,7 +144,6 @@ The module should generate MCP config (location TBD):
 1. **MCP config location** - Where does Claude Code expect the config? `~/.config/claude-code/mcp.json`?
 2. **Secret management** - Pass env vars at runtime? sops-nix? agenix?
 3. **Container runtime** - Docker only, or also support Podman?
-4. **ADO MCP choice** - Use Metorial container or acuvity? Test both?
 
 ---
 
