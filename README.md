@@ -129,11 +129,12 @@ nix profile install github:helgeu/nix-mcp-setup
 |--------|------|---------|-------------|
 | `enable` | bool | `false` | Enable GitHub MCP server |
 | `image` | string | pinned digest | Docker image (pinned for reproducibility) |
-| `tokenEnvVar` | string | `"GITHUB_PERSONAL_ACCESS_TOKEN"` | PAT environment variable |
+| `patEnvVar` | string | `"GITHUB_PERSONAL_ACCESS_TOKEN"` | PAT environment variable |
 | `host` | string | `null` | GitHub Enterprise host URL (null for github.com) |
 | `toolsets` | list | `[]` | Limit tools: repos, issues, pull_requests, actions, etc. |
 | `serverName` | string | `"github-mcp"` | MCP server name in config |
 | `prePull` | bool | `true` | Pre-pull image during activation |
+| `installGhCli` | bool | `true` | Install GitHub CLI (gh) for PAT management |
 
 ### `programs.claude-code.mcp.context7`
 
@@ -176,7 +177,13 @@ Set the PAT as an environment variable:
 export GITHUB_PERSONAL_ACCESS_TOKEN="your-pat-here"
 ```
 
-Create a PAT at: https://github.com/settings/tokens
+Generate a PAT with the helper script:
+
+```bash
+./scripts/create-github-pat.sh
+```
+
+Or create manually at: https://github.com/settings/tokens
 
 ### Existing ~/.claude.json
 
@@ -227,6 +234,7 @@ nix-mcp-setup/
 │       └── claude-mem.nix       # claude-mem plugin
 ├── scripts/
 │   ├── create-ado-pat.ps1       # Generate ADO PAT
+│   ├── create-github-pat.sh     # Generate GitHub PAT
 │   └── setup-claude-plugins.sh  # Manual plugin install
 ├── examples/
 │   └── claude.json              # Example config

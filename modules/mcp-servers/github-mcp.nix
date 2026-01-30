@@ -13,7 +13,7 @@ let
     "-i"
     "--rm"
     "-e"
-    cfg.tokenEnvVar
+    cfg.patEnvVar
   ] ++ optionals (cfg.host != null) [
     "-e"
     "GITHUB_HOST=${cfg.host}"
@@ -58,10 +58,10 @@ in
       '';
     };
 
-    tokenEnvVar = mkOption {
+    patEnvVar = mkOption {
       type = types.str;
       default = "GITHUB_PERSONAL_ACCESS_TOKEN";
-      description = "Environment variable name containing the GitHub PAT";
+      description = "Environment variable name containing the PAT";
     };
 
     host = mkOption {
@@ -103,9 +103,17 @@ in
       default = true;
       description = "Pre-pull the Docker image during home-manager activation";
     };
+
+    installGhCli = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Install GitHub CLI (gh) for PAT management";
+    };
   };
 
   config = mkIf cfg.enable {
+    # Install gh CLI if requested
+    home.packages = mkIf cfg.installGhCli [ pkgs.gh ];
     # MCP server config fragment - consumed by home-manager.nix
     programs.claude-code._mcpServers.${cfg.serverName} = {
       type = "stdio";
