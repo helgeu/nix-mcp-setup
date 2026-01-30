@@ -135,6 +135,15 @@ nix profile install github:helgeu/nix-mcp-setup
 | `serverName` | string | `"github-mcp"` | MCP server name in config |
 | `prePull` | bool | `true` | Pre-pull image during activation |
 
+### `programs.claude-code.mcp.context7`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enable` | bool | `false` | Enable Context7 MCP server |
+| `image` | string | pinned digest | Docker image (pinned for reproducibility) |
+| `serverName` | string | `"context7-mcp"` | MCP server name in config |
+| `prePull` | bool | `true` | Pre-pull image during activation |
+
 ### `programs.claude-code.plugins.claude-mem`
 
 | Option | Type | Default | Description |
@@ -201,7 +210,7 @@ mcp.azure-devops.image = "ghcr.io/...@sha256:abc123...";
 |--------|--------------|--------|
 | Azure DevOps | `ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops` | ✅ Implemented |
 | GitHub | `ghcr.io/github/github-mcp-server` | ✅ Implemented |
-| Context7 | Docker MCP Catalog | Planned |
+| Context7 | `mcp/context7` | ✅ Implemented |
 
 ## Project Structure
 
@@ -212,7 +221,8 @@ nix-mcp-setup/
 │   ├── home-manager.nix         # Home Manager module
 │   ├── mcp-servers/
 │   │   ├── azure-devops-mcp.nix # ADO MCP config
-│   │   └── github-mcp.nix       # GitHub MCP config
+│   │   ├── github-mcp.nix       # GitHub MCP config
+│   │   └── context7-mcp.nix     # Context7 MCP config
 │   └── plugins/
 │       └── claude-mem.nix       # claude-mem plugin
 ├── scripts/
