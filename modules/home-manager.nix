@@ -50,6 +50,7 @@ in
   imports = [
     ./mcp-servers/azure-devops-mcp.nix
     ./mcp-servers/github-mcp.nix
+    ./mcp-servers/context7-mcp.nix
     ./plugins/claude-mem.nix
   ];
 
