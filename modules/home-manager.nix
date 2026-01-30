@@ -48,7 +48,8 @@ let
 in
 {
   imports = [
-    ./mcp-servers/azure-devops.nix
+    ./mcp-servers/azure-devops-mcp.nix
+    ./mcp-servers/github-mcp.nix
     ./plugins/claude-mem.nix
   ];
 

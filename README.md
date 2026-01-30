@@ -123,6 +123,18 @@ nix profile install github:helgeu/nix-mcp-setup
 | `serverName` | string | `"ado-mcp"` | MCP server name in config |
 | `prePull` | bool | `true` | Pre-pull image during activation |
 
+### `programs.claude-code.mcp.github`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enable` | bool | `false` | Enable GitHub MCP server |
+| `image` | string | pinned digest | Docker image (pinned for reproducibility) |
+| `tokenEnvVar` | string | `"GITHUB_PERSONAL_ACCESS_TOKEN"` | PAT environment variable |
+| `host` | string | `null` | GitHub Enterprise host URL (null for github.com) |
+| `toolsets` | list | `[]` | Limit tools: repos, issues, pull_requests, actions, etc. |
+| `serverName` | string | `"github-mcp"` | MCP server name in config |
+| `prePull` | bool | `true` | Pre-pull image during activation |
+
 ### `programs.claude-code.plugins.claude-mem`
 
 | Option | Type | Default | Description |
@@ -146,6 +158,16 @@ Generate a PAT with:
 az login
 ./scripts/create-ado-pat.ps1
 ```
+
+### GitHub PAT
+
+Set the PAT as an environment variable:
+
+```bash
+export GITHUB_PERSONAL_ACCESS_TOKEN="your-pat-here"
+```
+
+Create a PAT at: https://github.com/settings/tokens
 
 ### Existing ~/.claude.json
 
@@ -178,7 +200,7 @@ mcp.azure-devops.image = "ghcr.io/...@sha256:abc123...";
 | Server | Docker Image | Status |
 |--------|--------------|--------|
 | Azure DevOps | `ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops` | ✅ Implemented |
-| GitHub | `ghcr.io/github/github-mcp-server` | Planned |
+| GitHub | `ghcr.io/github/github-mcp-server` | ✅ Implemented |
 | Context7 | Docker MCP Catalog | Planned |
 
 ## Project Structure
@@ -189,7 +211,8 @@ nix-mcp-setup/
 ├── modules/
 │   ├── home-manager.nix         # Home Manager module
 │   ├── mcp-servers/
-│   │   └── azure-devops.nix     # ADO MCP config
+│   │   ├── azure-devops-mcp.nix # ADO MCP config
+│   │   └── github-mcp.nix       # GitHub MCP config
 │   └── plugins/
 │       └── claude-mem.nix       # claude-mem plugin
 ├── scripts/
