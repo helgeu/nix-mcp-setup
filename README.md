@@ -145,14 +145,37 @@ programs.claude-code.mcp.azure-devops = {
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `enable` | bool | `false` | Enable GitHub MCP server |
+| `installGhCli` | bool | `true` | Install GitHub CLI (gh) for PAT management |
+
+### `programs.claude-code.mcp.github.instances.<name>`
+
+Multiple GitHub instances can be configured (github.com + GitHub Enterprise). Each `<name>` becomes part of the MCP server name (e.g., `personal` → `github-mcp-personal`).
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enable` | bool | `false` | Enable this GitHub MCP server instance |
 | `image` | string | pinned digest | Docker image (pinned for reproducibility) |
-| `patEnvVar` | string | `"GITHUB_PERSONAL_ACCESS_TOKEN"` | PAT environment variable |
+| `patEnvVar` | string | `"GITHUB_PAT_<NAME>"` | PAT environment variable (auto-generated from instance name) |
 | `host` | string | `null` | GitHub Enterprise host URL (null for github.com) |
 | `toolsets` | list | `[]` | Limit tools: repos, issues, pull_requests, actions, etc. |
-| `serverName` | string | `"github-mcp"` | MCP server name in config |
 | `prePull` | bool | `true` | Pre-pull image during activation |
-| `installGhCli` | bool | `true` | Install GitHub CLI (gh) for PAT management |
+
+Example with multiple instances:
+
+```nix
+programs.claude-code.mcp.github.instances = {
+  personal = {
+    enable = true;
+    # patEnvVar defaults to "GITHUB_PAT_PERSONAL"
+  };
+  work-ghe = {
+    enable = true;
+    host = "https://github.mycompany.com";
+    patEnvVar = "GH_PAT_WORK";
+    toolsets = [ "repos" "issues" "pull_requests" ];
+  };
+};
+```
 
 ### `programs.claude-code.mcp.context7`
 
@@ -194,16 +217,25 @@ Use the helper script to set up PATs:
 
 ### GitHub PAT
 
-Set the PAT as an environment variable:
+Set PATs as environment variables (one per instance):
 
 ```bash
-export GITHUB_PERSONAL_ACCESS_TOKEN="your-pat-here"
+# For instance "personal" → env var GITHUB_PAT_PERSONAL
+export GITHUB_PAT_PERSONAL="ghp_xxxxxxxxxxxx"
+export GH_PAT_WORK="ghp_yyyyyyyyyyyy"  # Custom env var for work-ghe instance
 ```
 
-Generate a PAT with the helper script:
+Use the helper script to set up PATs:
 
 ```bash
+# Interactive mode
 ./scripts/create-github-pat.sh
+
+# Set up PAT for specific instance
+./scripts/create-github-pat.sh --instance personal
+
+# Set up PAT for GitHub Enterprise instance
+./scripts/create-github-pat.sh --instance work-ghe --host "https://github.mycompany.com"
 ```
 
 Or create manually at: https://github.com/settings/tokens

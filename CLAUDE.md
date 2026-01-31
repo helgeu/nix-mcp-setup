@@ -39,7 +39,7 @@ flake.nix                           # Exposes 3 outputs: homeManagerModules,
         │
         ├── mcp-servers/
         │   ├── azure-devops-mcp.nix   # ADO MCP server config (multi-instance)
-        │   ├── github-mcp.nix         # GitHub MCP server config (GHE support)
+        │   ├── github-mcp.nix         # GitHub MCP server config (multi-instance, GHE support)
         │   └── context7-mcp.nix       # Context7 MCP server config
         │
         └── plugins/
@@ -104,8 +104,8 @@ programs.claude-code._mcpServers = mapAttrs' (name: instanceCfg:
 
 MCP servers expect PATs from environment (not config):
 - `AZURE_DEVOPS_PAT_<INSTANCE>` - Azure DevOps PAT (e.g., `AZURE_DEVOPS_PAT_WORK` for instance "work")
-- `GITHUB_PERSONAL_ACCESS_TOKEN` - GitHub PAT
+- `GITHUB_PAT_<INSTANCE>` - GitHub PAT (e.g., `GITHUB_PAT_PERSONAL` for instance "personal")
 
 Helper scripts in `scripts/` guide PAT setup:
 - `./scripts/create-ado-pat.sh` - Interactive multi-instance ADO PAT setup
-- `./scripts/create-github-pat.sh` - GitHub PAT setup
+- `./scripts/create-github-pat.sh` - Interactive multi-instance GitHub PAT setup
