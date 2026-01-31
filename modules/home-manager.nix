@@ -93,10 +93,11 @@ in
     # Install Claude Code and dependencies
     home.packages = [
       cfg.package
-      pkgs.bun       # Required for claude-mem plugin
-      pkgs.uv        # Required for claude-mem (uvx for Chroma)
       pkgs.nodejs_20 # Required for plugin scripts
       pkgs.jq        # Required for config merging
+    ] ++ lib.optionals config.programs.claude-code.plugins.claude-mem.enable [
+      pkgs.bun       # Required for claude-mem plugin
+      pkgs.uv        # Required for claude-mem (uvx for Chroma)
     ];
 
     # Validate container runtime during activation

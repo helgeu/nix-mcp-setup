@@ -38,11 +38,11 @@ Use the pre-configured module that includes the Claude Code package:
         {
           programs.claude-code = {
             enable = true;
-            mcp.azure-devops = {
+            mcp.azure-devops.work = {
               enable = true;
               organizationUrl = "https://dev.azure.com/myorg";
             };
-            plugins.claude-mem.enable = true;
+            # plugins.claude-mem.enable = true;  # Optional
           };
         }
       ];
@@ -74,11 +74,11 @@ For more control, pass the flake via `extraSpecialArgs`:
         {
           programs.claude-code = {
             enable = true;
-            mcp.azure-devops = {
+            mcp.azure-devops.work = {
               enable = true;
               organizationUrl = "https://dev.azure.com/myorg";
             };
-            plugins.claude-mem.enable = true;
+            # plugins.claude-mem.enable = true;  # Optional
           };
         }
       ];
@@ -112,16 +112,34 @@ nix profile install github:helgeu/nix-mcp-setup
 | `containerCommand` | string | `"docker"` | Container runtime (`docker`, `podman`, etc.) |
 | `validateContainerRuntime` | bool | `true` | Warn if container runtime not found |
 
-### `programs.claude-code.mcp.azure-devops`
+### `programs.claude-code.mcp.azure-devops.<name>`
+
+Multiple Azure DevOps instances can be configured. Each `<name>` becomes part of the MCP server name (e.g., `work` → `ado-mcp-work`).
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `enable` | bool | `false` | Enable ADO MCP server |
+| `enable` | bool | `false` | Enable this ADO MCP server instance |
 | `organizationUrl` | string | required | ADO organization URL |
 | `image` | string | pinned digest | Docker image (pinned for reproducibility) |
-| `patEnvVar` | string | `"AZURE_DEVOPS_PAT"` | PAT environment variable |
-| `serverName` | string | `"ado-mcp"` | MCP server name in config |
+| `patEnvVar` | string | `"AZURE_DEVOPS_PAT_<NAME>"` | PAT environment variable (auto-generated from instance name) |
 | `prePull` | bool | `true` | Pre-pull image during activation |
+
+Example with multiple instances:
+
+```nix
+programs.claude-code.mcp.azure-devops = {
+  work = {
+    enable = true;
+    organizationUrl = "https://dev.azure.com/work-org";
+    # patEnvVar defaults to "AZURE_DEVOPS_PAT_WORK"
+  };
+  client-acme = {
+    enable = true;
+    organizationUrl = "https://dev.azure.com/acme-corp";
+    patEnvVar = "ADO_PAT_ACME";  # Override default
+  };
+};
+```
 
 ### `programs.claude-code.mcp.github`
 
@@ -156,17 +174,22 @@ nix profile install github:helgeu/nix-mcp-setup
 
 ### Azure DevOps PAT
 
-Set the PAT as an environment variable:
+Set PATs as environment variables (one per instance):
 
 ```bash
-export AZURE_DEVOPS_PAT="your-pat-here"
+# For instance "work" → env var AZURE_DEVOPS_PAT_WORK
+export AZURE_DEVOPS_PAT_WORK="your-work-pat"
+export AZURE_DEVOPS_PAT_CLIENT_ACME="your-acme-pat"
 ```
 
-Generate a PAT with:
+Use the helper script to set up PATs:
 
 ```bash
-az login
-./scripts/create-ado-pat.ps1
+# Interactive mode
+./scripts/create-ado-pat.sh
+
+# Or specify instance directly
+./scripts/create-ado-pat.sh --instance work --org "https://dev.azure.com/work-org"
 ```
 
 ### GitHub PAT
@@ -233,7 +256,8 @@ nix-mcp-setup/
 │   └── plugins/
 │       └── claude-mem.nix       # claude-mem plugin
 ├── scripts/
-│   ├── create-ado-pat.ps1       # Generate ADO PAT
+│   ├── create-ado-pat.sh        # Generate ADO PAT (multi-instance)
+│   ├── create-ado-pat.ps1       # Generate ADO PAT (PowerShell, legacy)
 │   ├── create-github-pat.sh     # Generate GitHub PAT
 │   └── setup-claude-plugins.sh  # Manual plugin install
 ├── examples/
