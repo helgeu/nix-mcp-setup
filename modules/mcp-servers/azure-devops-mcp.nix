@@ -33,20 +33,16 @@ let
     options = {
       enable = mkEnableOption "this Azure DevOps MCP server instance";
 
-      organizationUrl = mkOption {
+      organization = mkOption {
         type = types.str;
-        example = "https://dev.azure.com/myorg";
-        description = "Azure DevOps organization URL";
+        example = "myorg";
+        description = "Azure DevOps organization name";
       };
 
       image = mkOption {
         type = types.str;
-        default = "ghcr.io/metorial/mcp-container--vortiago--mcp-azure-devops--mcp-azure-devops@sha256:ee151edb4beefea283d0aa42634dedde24953f56aa5fc006896c5b4e6a25b739";
-        description = ''
-          Docker image for the ADO MCP server.
-          Pinned to a specific digest for reproducibility.
-          Use `docker pull <image>:latest && docker inspect <image>:latest --format='{{index .RepoDigests 0}}'` to get the latest digest.
-        '';
+        default = "ghcr.io/helgeu/ado-mcp-docker-img:latest";
+        description = "Docker image for the ADO MCP server.";
       };
 
       patEnvVar = mkOption {
@@ -77,19 +73,18 @@ in
       {
         work = {
           enable = true;
-          organizationUrl = "https://dev.azure.com/work-org";
-          patEnvVar = "ADO_PAT_WORK";
+          organization = "work-org";
         };
         client-acme = {
           enable = true;
-          organizationUrl = "https://dev.azure.com/acme-corp";
+          organization = "acme-corp";
           patEnvVar = "ADO_PAT_ACME";
         };
       }
     '';
     description = ''
       Azure DevOps MCP server instances. Each attribute defines a separate
-      MCP server instance with its own organization URL and PAT.
+      MCP server instance with its own organization and PAT.
       The attribute name becomes part of the MCP server name (e.g., "work" -> "ado-mcp-work").
     '';
   };
@@ -105,14 +100,14 @@ in
           "-i"
           "--rm"
           "-e"
-          instanceCfg.patEnvVar
+          "ADO_ORG"
           "-e"
-          "AZURE_DEVOPS_ORGANIZATION_URL"
+          "ADO_MCP_AUTH_TOKEN"
           instanceCfg.image
-          "mcp-azure-devops"
         ];
         env = {
-          AZURE_DEVOPS_ORGANIZATION_URL = instanceCfg.organizationUrl;
+          ADO_ORG = instanceCfg.organization;
+          ADO_MCP_AUTH_TOKEN = "\${${instanceCfg.patEnvVar}}";
         };
       }
     ) enabledInstances;
